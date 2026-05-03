@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Your Dog Jumper</title>
+<style>
+  body {
+    margin: 0; padding: 0; background: #87CEEB; color: white;
+    font-family: Arial, sans-serif; display: flex; flex-direction: column;
+    align-items: center; height: 100vh; overflow: hidden;
+  }
+  canvas { 
+    background: linear-gradient(#87CEEB, #E0F7FA); 
+    border: 4px solid #333; 
+    max-width: 100%; 
+  }
+  #score { font-size: 28px; margin: 10px; text-shadow: 2px 2px 4px #000; }
+  #startBtn {
+    padding: 12px 30px; font-size: 20px; background: #FF9800; color: white;
+    border: none; border-radius: 50px; margin: 10px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1>🐶 Your Dog Jumper</h1>
+<div id="score">Score: 0</div>
+<canvas id="game" width="400" height="300"></canvas>
+<button id="startBtn">Start / Restart</button>
+
+<script>
+// Your dog image
+const dogImage = new Image();
+dogImage.src = "https://i.postimg.cc/YqG7ykrY/IMG-0466.png";
+
+// Sound effect
+const barkSound = new Audio("https://www.soundjay.com/buttons/beep-07.mp3"); 
+// Better bark sound (short & fun):
+// You can replace with any public bark URL if you want a different one
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const scoreElement = document.getElementById("score");
+const startBtn = document.getElementById("startBtn");
+
+let gameRunning = false;
+let score = 0;
+let gravity = 0.85;
+let velocity = 0;
+let dogY = 170;
+let dogWidth = 90;
+let dogHeight = 70;
+let isJumping = false;
+let hurdles = [];
+let frameCount = 0;
+const groundY = 225;
+
+dogImage.onload = () => console.log("Dog image loaded");
+
+function playBark() {
+  barkSound.currentTime = 0;   // restart sound
+  barkSound.play().catch(() => {}); // ignore autoplay restrictions
+}
+
+// Jump
+function jump() {
+  if (!isJumping && gameRunning) {
+    velocity = -17.5;
+    isJumping = true;
+    playBark();        // ← Bark on every jump!
+  }
+}
+
+canvas.addEventListener("touchstart", e => { e.preventDefault(); jump(); });
+canvas.addEventListener("click", jump);
+document.addEventListener("keydown", e => { if (e.key === " ") jump(); });
+
+function createHurdle() {
+  hurdles.push({ x: canvas.width + 30, y: groundY - 50, width: 32, height: 58, passed: false });
+}
+
+function drawBackground() {
+  ctx.fillStyle = "#8BC34A";
+  ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+  
+  ctx.strokeStyle = "#689F38";
+  for (let i = 15; i < canvas.width; i += 40) {
+    ctx.beginPath();
+    ctx.moveTo(i, groundY);
+    ctx.lineTo(i + 18, groundY - 22);
+    ctx.stroke();
+  }
+}
+
+function updateAndDraw() {
+  if (!gameRunning) return;
+
+  frameCount++;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBackground();
+
+  velocity += gravity;
+  dogY += velocity;
+
+  if (dogY >= groundY - dogHeight) {
+    dogY = groundY - dogHeight;
+    velocity = 0;
+    isJumping = false;
+  }
+
+  if (frameCount % 70 === 0) createHurdle();
+
+  for (let i = hurdles.length - 1; i >= 0; i--) {
+    const h = hurdles[i];
+    h.x -= 4.3;
+
+    ctx.fillStyle = "#d32f2f";
+    ctx.fillRect(h.x, h.y, h.width, h.height);
+    ctx.fillStyle = "#f57c00";
+    ctx.fillRect(h.x + 5, h.y + 10, h.width - 10, 12);
+
+    if (!h.passed && h.x + h.width < 80) {
+      h.passed = true;
+      score += 10;
+      scoreElement.textContent = "Score: " + score;
+    }
+
+    if (65 < h.x + h.width && 65 + dogWidth > h.x &&
+        dogY + dogHeight - 12 > h.y && dogY + 12 < h.y + h.height) {
+      gameRunning = false;
+      alert(`💥 Game Over!\n\nFinal Score: ${score}`);
+      return;
+    }
+
+    if (h.x < -50) hurdles.splice(i, 1);
+  }
+
+  if (dogImage.complete) {
+    ctx.drawImage(dogImage, 65, dogY, dogWidth, dogHeight);
+  } else {
+    ctx.fillStyle = "#5D4037";
+    ctx.fillRect(65, dogY, dogWidth, dogHeight);
+  }
+
+  requestAnimationFrame(updateAndDraw);
+}
+
+function startGame() {
+  hurdles = [];
+  score = 0;
+  dogY = 170;
+  velocity = 0;
+  frameCount = 0;
+  scoreElement.textContent = "Score: 0";
+  gameRunning = true;
+  updateAndDraw();
+}
+
+startBtn.addEventListener("click", startGame);
+</script>
+
+</body>
+</html>
