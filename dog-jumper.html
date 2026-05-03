@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Your Dog Jumper</title>
+<title>Dog Jumper</title>
 <style>
   body {
     margin: 0; padding: 0; background: #87CEEB; color: white;
@@ -14,6 +14,7 @@
     background: linear-gradient(#87CEEB, #E0F7FA); 
     border: 4px solid #333; 
     max-width: 100%; 
+    touch-action: none;
   }
   #score { font-size: 28px; margin: 10px; text-shadow: 2px 2px 4px #000; }
   #startBtn {
@@ -24,21 +25,21 @@
 </head>
 <body>
 
-<h1>🐶 Your Dog Jumper</h1>
+<h1>🐶 Dog Jumper</h1>
 <div id="score">Score: 0</div>
 <canvas id="game" width="400" height="300"></canvas>
 <button id="startBtn">Start / Restart</button>
 
 <script>
-// Your dog image
+// ====================== YOUR DOG ======================
 const dogImage = new Image();
 dogImage.src = "https://i.postimg.cc/YqG7ykrY/IMG-0466.png";
 
-// Sound effect
-const barkSound = new Audio("https://www.soundjay.com/buttons/beep-07.mp3"); 
-// Better bark sound (short & fun):
-// You can replace with any public bark URL if you want a different one
+// ====================== SOUND ======================
+const barkSound = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"); 
+barkSound.volume = 0.6;
 
+// Canvas setup
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const scoreElement = document.getElementById("score");
@@ -56,22 +57,17 @@ let hurdles = [];
 let frameCount = 0;
 const groundY = 225;
 
-dogImage.onload = () => console.log("Dog image loaded");
-
-function playBark() {
-  barkSound.currentTime = 0;   // restart sound
-  barkSound.play().catch(() => {}); // ignore autoplay restrictions
-}
-
-// Jump
+// Jump function with bark
 function jump() {
   if (!isJumping && gameRunning) {
     velocity = -17.5;
     isJumping = true;
-    playBark();        // ← Bark on every jump!
+    barkSound.currentTime = 0;
+    barkSound.play().catch(() => {});
   }
 }
 
+// Controls
 canvas.addEventListener("touchstart", e => { e.preventDefault(); jump(); });
 canvas.addEventListener("click", jump);
 document.addEventListener("keydown", e => { if (e.key === " ") jump(); });
@@ -100,6 +96,7 @@ function updateAndDraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
 
+  // Dog physics
   velocity += gravity;
   dogY += velocity;
 
@@ -109,33 +106,39 @@ function updateAndDraw() {
     isJumping = false;
   }
 
+  // Spawn hurdles
   if (frameCount % 70 === 0) createHurdle();
 
+  // Update hurdles
   for (let i = hurdles.length - 1; i >= 0; i--) {
     const h = hurdles[i];
     h.x -= 4.3;
 
+    // Draw hurdle
     ctx.fillStyle = "#d32f2f";
     ctx.fillRect(h.x, h.y, h.width, h.height);
     ctx.fillStyle = "#f57c00";
     ctx.fillRect(h.x + 5, h.y + 10, h.width - 10, 12);
 
+    // Score
     if (!h.passed && h.x + h.width < 80) {
       h.passed = true;
       score += 10;
       scoreElement.textContent = "Score: " + score;
     }
 
+    // Collision
     if (65 < h.x + h.width && 65 + dogWidth > h.x &&
         dogY + dogHeight - 12 > h.y && dogY + 12 < h.y + h.height) {
       gameRunning = false;
-      alert(`💥 Game Over!\n\nFinal Score: ${score}`);
+      alert(`💥 Game Over!\n\nFinal Score: ${score}\n\nTap Start to play again!`);
       return;
     }
 
     if (h.x < -50) hurdles.splice(i, 1);
   }
 
+  // Draw dog
   if (dogImage.complete) {
     ctx.drawImage(dogImage, 65, dogY, dogWidth, dogHeight);
   } else {
